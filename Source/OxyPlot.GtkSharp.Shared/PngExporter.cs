@@ -39,6 +39,15 @@ namespace OxyPlot.GtkSharp
         /// </summary>
         public OxyColor Background { get; set; }
 
+        private static Format GetFormat()
+        {
+#if GTKSHARP4
+            return Format.Argb32;
+#else
+            return Format.ARGB32;
+#endif
+        }
+
         /// <summary>
         /// Exports the specified <see cref="PlotModel" /> to a png file.
         /// </summary>
@@ -49,9 +58,15 @@ namespace OxyPlot.GtkSharp
         /// <param name="background">The background color.</param>
         public static void Export(IPlotModel model, string fileName, int width, int height, Pattern background = null)
         {
-            using (var bm = new ImageSurface(Format.ARGB32, width, height))
+            var bm = new ImageSurface(GetFormat(), width, height);
+#if !GTKSHARP4
+            using (bm)
+#endif
             {
-                using (var g = new Context(bm))
+                var g = new Context(bm);
+#if !GTKSHARP4
+                using (g)
+#endif
                 {
                     if (background != null)
                     {
@@ -67,7 +82,13 @@ namespace OxyPlot.GtkSharp
                     model.Update(true);
                     OxyRect rect = new OxyRect(0, 0, width, height);
                     model.Render(rc, rect);
+#if GTKSHARP4
+                    // todo: cairo_surface_write_to_png not included in GIR file
+                    // for some reason.
+                    throw new NotImplementedException();
+#else
                     bm.WriteToPng(fileName);
+#endif
                 }
             }
         }
@@ -79,14 +100,23 @@ namespace OxyPlot.GtkSharp
         /// <param name="stream">The output stream.</param>
         public void Export(IPlotModel model, Stream stream)
         {
-            using (var bm = new ImageSurface(Format.ARGB32, this.Width, this.Height))
+            var bm = new ImageSurface(GetFormat(), this.Width, this.Height);
+#if !GTKSHARP4
+            using (bm)
+#endif
             {
-                using (var g = new Context(bm))
+                var g = new Context(bm);
+#if !GTKSHARP4
+                using (g)
+#endif
                 {
                     if (this.Background.IsVisible())
                     {
                         g.Save();
-                        using (var pattern = new SolidPattern(this.Background.R, this.Background.G, this.Background.B, this.Background.A))
+                        var pattern = CreateSolidPattern(this.Background.R, this.Background.G, this.Background.B, this.Background.A);
+#if !GTKSHARP4
+                        using (pattern)
+#endif
                         {
                             g.SetSource(pattern);
                             g.Rectangle(0, 0, this.Width, this.Height);
@@ -103,6 +133,11 @@ namespace OxyPlot.GtkSharp
 
                     // write to a temporary file
                     var tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".png");
+#if GTKSHARP4
+                    // todo: cairo_surface_write_to_png not included in GIR file
+                    // for some reason.
+                    throw new NotImplementedException();
+#else
                     bm.WriteToPng(tmp);
                     var bytes = File.ReadAllBytes(tmp);
 
@@ -111,8 +146,18 @@ namespace OxyPlot.GtkSharp
 
                     // delete the temporary file
                     File.Delete(tmp);
+#endif
                 }
             }
         }
-    }
+
+		private SolidPattern CreateSolidPattern(byte r, byte g, byte b, byte a)
+		{
+#if GTKSHARP4
+            return SolidPattern.CreateRgba(r / 255.0, g / 255.0, b / 255.0, a / 255.0);
+#else
+            return new SolidPattern(r, g, b, a);
+#endif
+		}
+	}
 }

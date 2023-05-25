@@ -14,8 +14,54 @@ namespace OxyPlot.GtkSharp
 
     using Gdk;
 
+#if GTKSHARP4
+    using GdkPixbuf;
+    using Point = PointD;
+
+    public class PointD
+    {
+        public double X { get; private init; }
+        public double Y { get; private init; }
+        public PointD(double x, double y)
+        {
+            X = x;
+            Y = y;
+        }
+    }
+    // Currently no way to construct a Cairo Rectangle from managed code.
+    // (Well, no way without manually managing the memory...).
+    public class Rectangle
+    {
+        /// <summary>
+        /// X-value of top-left coordinate.
+        /// </summary>
+        public double X { get; set; }
+
+        /// <summary>
+        /// Y-value of top-left coordinate.
+        /// </summary>
+        public double Y { get; set; }
+    
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double Left { get => X; }
+        public double Top { get => Y; }
+        public double Right { get => Left + Width; }
+        public double Bottom { get => Top + Height; }
+
+        public Rectangle(double x, double y, double width, double height)
+        {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+        }
+    }
+    
+#else
     using Point = Cairo.Point;
     using Rectangle = Cairo.Rectangle;
+#endif
 
     /// <summary>
     /// Extension method used to convert to/from Windows/Windows.Media classes.
@@ -39,6 +85,53 @@ namespace OxyPlot.GtkSharp
                     return LineJoin.Miter;
             }
         }
+
+#if GTKSHARP4
+        public static void SetSourceRGBA(this Context ctx, double r, double g, double b, double a)
+        {
+            ctx.SetSourceRgba(r, g, b, a);
+        }
+        public static void MoveTo(this Context ctx, PointD point)
+        {
+            ctx.MoveTo(point.X, point.Y);
+        }
+        public static void LineTo(this Context ctx, PointD point)
+        {
+            ctx.LineTo(point.X, point.Y);
+        }
+        public static void Rectangle(this Context ctx, Rectangle r)
+        {
+            ctx.Rectangle(r.Left, r.Top, r.Width, r.Height);
+        }
+        public static void SetText(this Pango.Layout layout, string text)
+        {
+            layout.SetText(text, System.Text.Encoding.UTF8.GetByteCount(text));
+        }
+        public static void SetPadding(this Gtk.Widget widget, int x, int y)
+        {
+            widget.MarginTop = y;
+            widget.MarginBottom = y;
+            widget.MarginStart = x;
+            widget.MarginEnd = x;
+        }
+        public static int GetWidth(this Pango.Rectangle rectangle)
+        {
+            return System.Runtime.InteropServices.Marshal.PtrToStructure<Pango.Internal.RectangleData>(rectangle.Handle.DangerousGetHandle()).Width;
+        }
+        public static int GetHeight(this Pango.Rectangle rectangle)
+        {
+            return System.Runtime.InteropServices.Marshal.PtrToStructure<Pango.Internal.RectangleData>(rectangle.Handle.DangerousGetHandle()).Height;
+        }
+#else
+        public static int GetWidth(this Gtk.Widget widget)
+        {
+            return widget.Allocation.Width;
+        }
+        public static int GetHeight(this Gtk.Widget widget)
+        {
+            return widget.Allocation.Height;
+        }
+#endif
 
         /// <summary>
         /// Sets the source color for the Cairo context.
@@ -92,7 +185,13 @@ namespace OxyPlot.GtkSharp
         /// <param name="r">The rectangle.</param>
         /// <param name="aliased">Use pixel alignment if set to <c>true</c>.</param>
         /// <returns>The converted rectangle.</returns>
-        public static OxyRect ToOxyRect(this Gdk.Rectangle r, bool aliased = false)
+        public static OxyRect ToOxyRect(
+#if GTKSHARP4
+            this Rectangle r
+#else
+            this Gdk.Rectangle r
+#endif
+            , bool aliased = false)
         {
             if (aliased)
             {
@@ -116,6 +215,7 @@ namespace OxyPlot.GtkSharp
             return new ScreenPoint(pt.X, pt.Y);
         }
 
+#if !GTKSHARP4
         /// <summary>
         /// Creates the mouse down event arguments.
         /// </summary>
@@ -413,13 +513,13 @@ namespace OxyPlot.GtkSharp
 
             return OxyMouseButton.Left;
         }
-
+#endif
         /// <summary>
         /// Converts a <see cref="ModifierType" /> to a <see cref="OxyModifierKeys" />.
         /// </summary>
         /// <param name="state">The state.</param>
         /// <returns>The modifier keys.</returns>
-        public static OxyModifierKeys GetModifiers(ModifierType state)
+        public static OxyModifierKeys GetModifiers(this ModifierType state)
         {
             var result = OxyModifierKeys.None;
 
@@ -433,12 +533,32 @@ namespace OxyPlot.GtkSharp
                 result |= OxyModifierKeys.Control;
             }
 
-            if ((state & ModifierType.Mod1Mask) != 0)
+            ModifierType altMask;
+#if GTKSHARP4
+            altMask = ModifierType.AltMask;
+#else
+            altMask = ModifierType.Mod1Mask;
+#endif
+            if ((state & altMask) != 0)
             {
                 result |= OxyModifierKeys.Alt;
             }
 
             return result;
+        }
+
+
+        public static void SetSourcePixbuf(this Cairo.Context layout, Pixbuf image, double pixbufX, double pixbufY)
+        {
+#if GTKSHARP4
+            Gdk.Functions.CairoSetSourcePixbuf(
+#else
+            Gdk.CairoHelper.SetSourcePixbuf(
+#endif
+                layout,
+                image,
+                0.0,
+                0.0);
         }
     }
 }

@@ -18,6 +18,13 @@ namespace OxyPlot.GtkSharp
 
     using Gtk;
 
+#if GTKSHARP4
+    using EventScroll = Gdk.ScrollEvent;
+    using EventButton = Gdk.ButtonEvent;
+    using EventMotion = Gdk.MotionEvent;
+    using EventCrossing = Gdk.CrossingEvent;
+#endif
+
     /// <summary>
     /// Represents a control that displays a <see cref="PlotModel" />.
     /// </summary>
@@ -90,18 +97,17 @@ namespace OxyPlot.GtkSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="PlotView" /> class.
         /// </summary>
-        public PlotView() : base(null, null)
+        public PlotView()
+#if !GTKSHARP4
+            : base(null, null)
+#endif
         {
             this.renderContext = new GraphicsRenderContext();
 
             // ReSharper disable DoNotCallOverridableMethodsInConstructor
-            this.DoubleBuffered = true;
+            this.Initialise();
+
             // ReSharper restore DoNotCallOverridableMethodsInConstructor
-            this.PanCursor = new Cursor(CursorType.Hand1);
-            this.ZoomRectangleCursor = new Cursor(CursorType.Sizing);
-            this.ZoomHorizontalCursor = new Cursor(CursorType.SbHDoubleArrow);
-            this.ZoomVerticalCursor = new Cursor(CursorType.SbVDoubleArrow);
-            this.AddEvents((int)(EventMask.ButtonPressMask | EventMask.ButtonReleaseMask | EventMask.EnterNotifyMask | EventMask.LeaveNotifyMask | EventMask.ScrollMask | EventMask.KeyPressMask | EventMask.PointerMotionMask));
             this.CanFocus = true;
         }
 
@@ -171,7 +177,7 @@ namespace OxyPlot.GtkSharp
         {
             get
             {
-                return new OxyRect(0, 0, Allocation.Width, Allocation.Height);
+                return new OxyRect(0, 0, this.GetWidth(), this.GetHeight());
             }
         }
 
@@ -279,27 +285,64 @@ namespace OxyPlot.GtkSharp
         /// <param name="data">The data.</param>
         public void ShowTracker(TrackerHitResult data)
         {
+#if GTKSHARP4
+            int width = this.GetWidth();
+            int height = GetHeight();
+#else
+            Gtk.Requisition req = this.trackerLabel.Parent.SizeRequest();
+            int width = req.Width;
+            int height = req.Height;
+#endif
+
+            int xPos = (int)data.Position.X - width / 2;
+            int yPos = (int)data.Position.Y - height;
+            xPos = Math.Max(0, Math.Min(xPos, this.GetWidth() - width));
+            yPos = Math.Max(0, Math.Min(yPos, this.GetHeight() - height));
+            this.ShowText(data.ToString(), OxyColors.LightSkyBlue, xPos, yPos);
+        }
+
+        private void ShowText(string text, OxyColor bgColor, int x, int y)
+        {
+#if GTKSHARP4
+            // tbi
+            ScreenPoint point = new ScreenPoint(x, y);
+            // These font settings aren't yet used in gtk4 builds, but we will
+            // eventually need to figure out what settings to use.
+            string family = string.Empty;
+            double size = 12;
+            double weight = 1;
+            double rotate = 0;
+            HorizontalAlignment halign = HorizontalAlignment.Center;
+            VerticalAlignment valign = VerticalAlignment.Middle;
+            OxySize? maxSize = null;
+            renderContext.DrawText(
+                point,
+                text,
+                bgColor,
+                family,
+                size,
+                weight,
+                rotate,
+                halign,
+                valign,
+                maxSize);
+#else
             if (this.trackerLabel == null)
             {
                 // Holding the tracker label inside an EventBox allows
                 // us to set the background color
-                Gtk.EventBox labelHolder = new Gtk.EventBox();
                 this.trackerLabel = new Gtk.Label();
                 this.trackerLabel.SetPadding(3, 3);
-                OxyColor bgColor = OxyColors.LightSkyBlue;
+                Gtk.EventBox labelHolder = new Gtk.EventBox();
                 labelHolder.ModifyBg(StateType.Normal, new Gdk.Color(bgColor.R, bgColor.G, bgColor.B));
                 labelHolder.Add(this.trackerLabel);
-                this.Add(labelHolder);
                 labelHolder.ShowAll();
+                this.Add(labelHolder);
             }
             this.trackerLabel.Parent.Visible = true;
-            this.trackerLabel.Text = data.ToString();
-            Gtk.Requisition req = this.trackerLabel.Parent.SizeRequest();
-            int xPos = (int)data.Position.X - req.Width / 2;
-            int yPos = (int)data.Position.Y - req.Height;
-            xPos = Math.Max(0, Math.Min(xPos, this.Allocation.Width - req.Width));
-            yPos = Math.Max(0, Math.Min(yPos, this.Allocation.Height - req.Height));
-            this.Move(trackerLabel.Parent, xPos, yPos);
+            this.trackerLabel.Text = text;
+            this.Move(trackerLabel.Parent, x, y);
+#endif
         }
 
         /// <summary>
@@ -320,9 +363,13 @@ namespace OxyPlot.GtkSharp
         {
             try
             {
+#if GTKSHARP4
+                Gdk.Display.GetDefault()?.GetClipboard()?.SetText(text);
+#else
                 // todo: can't get the following solution to work
                 // http://stackoverflow.com/questions/5707990/requested-clipboard-operation-did-not-succeed
                 this.GetClipboard(Gdk.Selection.Clipboard).Text = text;
+#endif
             }
             catch (ExternalException)
             {
@@ -330,7 +377,7 @@ namespace OxyPlot.GtkSharp
                 // MessageBox.Show(this, ee.Message, "OxyPlot");
             }
         }
-
+#if !GTKSHARP4
         /// <summary>
         /// Called when the mouse button is pressed.
         /// </summary>
@@ -419,7 +466,7 @@ namespace OxyPlot.GtkSharp
         {
             return this.ActualController.HandleKeyDown(this, e.ToKeyEventArgs());
         }
-
+#endif
         /// <summary>
         /// Draws the plot to a cairo context within the specified bounds.
         /// </summary>
@@ -448,7 +495,7 @@ namespace OxyPlot.GtkSharp
                     this.renderContext.SetGraphicsTarget(cr);
                     if (this.model != null)
                     {
-                        OxyRect rect = new OxyRect(0, 0, Allocation.Width, Allocation.Height);
+                        OxyRect rect = new OxyRect(0, 0, this.GetWidth(), this.GetHeight());
                         if (!this.model.Background.IsUndefined())
                         {
                             this.renderContext.DrawRectangle(rect, this.model.Background, OxyColors.Undefined, 0, edgeRenderingMode);

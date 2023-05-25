@@ -19,6 +19,10 @@ namespace OxyPlot.GtkSharp
 
     using Gdk;
 
+#if GTKSHARP4
+    using GdkPixbuf;
+#endif
+
     /// <summary>
     /// The graphics render context.
     /// </summary>
@@ -39,7 +43,7 @@ namespace OxyPlot.GtkSharp
         /// </summary>
         private Cairo.Context g;
 
-#if GTKSHARP3
+#if GTKSHARP34
         /// <summary>
         /// The text layout context
         /// </summary>
@@ -66,6 +70,8 @@ namespace OxyPlot.GtkSharp
             this.g.Antialias = Antialias.Subpixel; // TODO  .TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 #if GTKSHARP3
             this.c = Pango.CairoHelper.CreateContext(this.g);
+#elif GTKSHARP4
+            this.c = PangoCairo.Functions.CreateContext(graphics);
 #endif
         }
 
@@ -286,22 +292,24 @@ namespace OxyPlot.GtkSharp
             VerticalAlignment valign,
             OxySize? maxSize)
         {
-#if GTKSHARP3
-            Pango.Layout layout = new Layout(this.c);
+            Pango.Layout layout = CreateLayout(text, fontFamily, fontSize, fontWeight, rotate);
+
+#if GTKSHARP4
+            // fixme: gircore rectangle handling is clunky.
+            Pango.Rectangle inkRect = new Pango.Rectangle(Pango.Internal.RectangleManagedHandle.Create());
+            Pango.Rectangle tmpSize = new Pango.Rectangle(Pango.Internal.RectangleManagedHandle.Create());
+            Pango.Internal.Layout.GetExtents(layout.Handle, inkRect.Handle, tmpSize.Handle);
+
+            Pango.Internal.RectangleData data = System.Runtime.InteropServices.Marshal.PtrToStructure<Pango.Internal.RectangleData>(tmpSize.Handle.DangerousGetHandle());
+			Rectangle size = new Rectangle(data.X, data.Y, data.Width, data.Height);
 #else
-            Pango.Layout layout = Pango.CairoHelper.CreateLayout(this.g);
-#endif
-            Pango.FontDescription font = new Pango.FontDescription();
-            font.Family = fontFamily;
-            font.Weight = (fontWeight >= 700) ? Pango.Weight.Bold : Pango.Weight.Normal;
-            font.AbsoluteSize = (int)(fontSize * Pango.Scale.PangoScale);
-            layout.FontDescription = font;
-            layout.SetText(text);
             Pango.Rectangle inkRect;
             Pango.Rectangle size;
             layout.GetExtents(out inkRect, out size);
-            size.Width /= (int)Pango.Scale.PangoScale;
-            size.Height /= (int)Pango.Scale.PangoScale;
+#endif
+            size.Width /= GetPangoScale();
+            size.Height /= GetPangoScale();
+
             if (maxSize != null)
             {
                 int maxWidth = (int)Math.Min((Double)Int32.MaxValue, maxSize.Value.Width);
@@ -343,49 +351,105 @@ namespace OxyPlot.GtkSharp
             g.Rectangle(0, 0, size.Width + 0.1f, size.Height + 0.1f);
             g.Clip();
             this.g.SetSourceColor(fill);
+#if GTKSHARP4
+            PangoCairo.Functions.ShowLayout(this.g, layout);
+#else
             Pango.CairoHelper.ShowLayout(this.g, layout);
+#endif
             layout.Dispose();
             this.g.Restore();
         }
 
-        /// <summary>
-        /// The measure text.
-        /// </summary>
-        /// <param name="text">The text.</param>
-        /// <param name="fontFamily">The font family.</param>
-        /// <param name="fontSize">The font size.</param>
-        /// <param name="fontWeight">The font weight.</param>
-        /// <returns>The size of the text.</returns>
-        public override OxySize MeasureText(string text, string fontFamily, double fontSize, double fontWeight)
+		private FontDescription CreateFontDescription()
+		{
+#if GTKSHARP4
+            return new Pango.FontDescription(Pango.Internal.FontDescriptionManagedHandle.Create());
+#else
+            return new Pango.FontDescription();
+#endif
+		}
+
+		/// <summary>
+		/// The measure text.
+		/// </summary>
+		/// <param name="text">The text.</param>
+		/// <param name="fontFamily">The font family.</param>
+		/// <param name="fontSize">The font size.</param>
+		/// <param name="fontWeight">The font weight.</param>
+		/// <returns>The size of the text.</returns>
+		public override OxySize MeasureText(string text, string fontFamily, double fontSize, double fontWeight)
         {
             if (text == null)
             {
                 return OxySize.Empty;
             }
             this.g.Save();
-#if GTKSHARP3
-            Pango.Layout layout = new Layout(this.c);
-#else
-            Pango.Layout layout = Pango.CairoHelper.CreateLayout(this.g);
-#endif
-            Pango.FontDescription font = new Pango.FontDescription();
-            font.Family = fontFamily;
-            font.Weight = (fontWeight >= 700) ? Pango.Weight.Bold : Pango.Weight.Normal;
-            font.AbsoluteSize = (int)(fontSize * Pango.Scale.PangoScale);
-            layout.FontDescription = font;
-            layout.SetText(text);
+            Pango.Layout layout = CreateLayout(text, fontFamily, fontSize, fontWeight, 0);
+
             Pango.Rectangle inkRect;
             Pango.Rectangle logicalRect;
+#if GTKSHARP4
+            inkRect = new Pango.Rectangle(Pango.Internal.RectangleManagedHandle.Create());
+            logicalRect = new Pango.Rectangle(Pango.Internal.RectangleManagedHandle.Create());
+            Pango.Internal.Layout.GetExtents(layout.Handle, inkRect.Handle, logicalRect.Handle);
+            int width = logicalRect.GetWidth();
+            int height = logicalRect.GetHeight();
+#else
             layout.GetExtents(out inkRect, out logicalRect);
+            double width = logicalRect.Width;
+            double height = logicalRect.Height;
+#endif
+            width /= GetPangoScale();
+            height /= GetPangoScale();
+
             this.g.Restore();
             layout.Dispose();
-            return new OxySize(logicalRect.Width / Pango.Scale.PangoScale, logicalRect.Height / Pango.Scale.PangoScale);
+            return new OxySize(width, height);
         }
 
         /// <summary>
-        /// The clean up.
+        /// Create a pango layout.
         /// </summary>
-        public override void CleanUp()
+		private Pango.Layout CreateLayout(string text, string fontFamily, double fontSize, double fontWeight, double rotate)
+		{
+            Pango.Layout layout = CreateLayout();
+            Pango.Weight weight = (fontWeight >= 700) ? Pango.Weight.Bold : Pango.Weight.Normal;
+            double size = fontSize * GetPangoScale();
+#if GTKSHARP4
+            // fixme - gircore doesn't yet support struct methods/properties
+            var hnd = Pango.Internal.FontDescription.FromString(fontFamily);
+            Pango.FontDescription font = new Pango.FontDescription(hnd);
+            font.SetWeight(weight);
+            font.SetAbsoluteSize(size);
+            layout.SetFontDescription(font);
+            
+            // Pango.Internal.FontDescriptionData fontData = System.Runtime.InteropServices.Marshal.PtrToStructure<Pango.Internal.FontDescriptionData>(font.Handle.DangerousGetHandle());
+#else
+            Pango.FontDescription font = CreateFontDescription();
+            font.Family = fontFamily;
+            font.Weight = weight;
+            font.AbsoluteSize = (int)size;
+            layout.FontDescription = font;
+#endif
+            layout.SetText(text);
+            return layout;
+        }
+
+        private Pango.Layout CreateLayout()
+        {
+#if GTKSHARP3
+            return new Layout(this.c);
+#elif GTKSHARP4
+            return Pango.Layout.New(this.c);
+#else
+            return Pango.CairoHelper.CreateLayout(this.g);
+#endif
+		}
+
+		/// <summary>
+		/// The clean up.
+		/// </summary>
+		public override void CleanUp()
         {
             var imagesToRelease = this.imageCache.Keys.Where(i => !this.imagesInUse.Contains(i)).ToList();
             foreach (var i in imagesToRelease)
@@ -469,11 +533,7 @@ namespace OxyPlot.GtkSharp
                 this.g.Translate(x, y);
                 this.g.Scale(scalex, scaley);
                 this.g.Rectangle(0, 0, image.Width, image.Height);
-                Gdk.CairoHelper.SetSourcePixbuf(
-                    this.g,
-                    image,
-                    0.0,
-                    0.0);
+                this.g.SetSourcePixbuf(image, 0.0, 0.0);
                 this.g.Fill();
                 this.g.Restore();
             }
@@ -527,13 +587,25 @@ namespace OxyPlot.GtkSharp
             }
 
             Pixbuf btm;
+#if GTKSHARP4
+            btm = PixbufLoader.FromBytes(source.GetData());
+#else
             using (var ms = new MemoryStream(source.GetData()))
             {
                 btm = new Pixbuf(ms);
             }
-
+#endif
             this.imageCache.Add(source, btm);
             return btm;
+        }
+
+        private static int GetPangoScale()
+        {
+#if GTKSHARP4
+            return Pango.Constants.SCALE;
+#else
+            return (int)Pango.Scale.PangoScale;
+#endif
         }
     }
 }

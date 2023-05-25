@@ -21,12 +21,26 @@ namespace ExampleBrowser
         [STAThread]
         static void Main()
         {
+            const int width = 800;
+            const int height = 600;
+#if GTKSHARP4
+            var application = Gtk.Application.New("org.oxyplot.examplebrowsergtk4", Gio.ApplicationFlags.FlagsNone);
+            application.OnActivate += (sender, args) =>
+            {
+                var window = new MainWindow();
+                window.Application = (Gtk.Application)sender;
+                window.SetDefaultSize(width, height);
+                window.Present();
+            };
+            application.Run();
+#else
             Application.Init();
             var window = new MainWindow();
-            window.SetDefaultSize (800, 600);
+            window.SetDefaultSize (width, height);
             window.Visible = true;
             window.ShowAll();
             Application.Run();
+#endif
         }
     }
 }

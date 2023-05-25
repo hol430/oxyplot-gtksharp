@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net451</TargetFrameworks>
+    <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
     <RootNamespace>OxyPlot.GtkSharp</RootNamespace>
-    <PackageId>OxyPlot.GtkSharp3</PackageId>
+    <PackageId>OxyPlot.GtkSharp4</PackageId>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Description>OxyPlot for GTK# 3</Description>
+    <Description>OxyPlot for GTK# 4</Description>
     <PackageLicenseUrl>https://raw.githubusercontent.com/oxyplot/oxyplot-gtksharp/master/LICENSE</PackageLicenseUrl>
     <Copyright>OxyPlot contributors</Copyright>
     <PackageProjectUrl>http://oxyplot.org/</PackageProjectUrl>
@@ -14,16 +14,12 @@
     <RepositoryUrl>https://github.com/oxyplot/oxyplot-gtksharp.git</RepositoryUrl>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>OxyPlot.snk</AssemblyOriginatorKeyFile>
-    <DefineConstants>GTKSHARP3;GTKSHARP34</DefineConstants>
+    <DefineConstants>GTKSHARP4;GTKSHARP34</DefineConstants>
   </PropertyGroup>
   <Import Project="..\OxyPlot.GtkSharp.Shared\OxyPlot.GtkSharp.Shared.projitems" Label="Shared" />
   <ItemGroup>
     <PackageReference Include="OxyPlot.Core" Version="2.1.0" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
-    <PackageReference Include="GtkSharp" Version="3.22.25.*" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)'=='net451'">
-    <PackageReference Include="gtk-sharp-3" Version="3.22.6.4" />
+    <PackageReference Include="GirCore.Gtk-4.0" Version="0.3.0" />
+    <PackageReference Include="GirCore.PangoCairo-1.0" Version="0.3.0" />
   </ItemGroup>
 </Project>

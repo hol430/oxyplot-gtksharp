@@ -3,11 +3,25 @@
 //   Copyright (c) 2015 OxyPlot contributors
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
+using Gdk;
 
 namespace OxyPlot.GtkSharp
 {
     public partial class PlotView
     {
+        /// <summary>
+        /// Gtk version-specific initialisation.
+        /// </summary>
+        private void Initialise()
+        {
+            this.DoubleBuffered = true;
+            this.PanCursor = new Cursor(Gdk.CursorType.Hand1);
+            this.ZoomRectangleCursor = new Cursor(Gdk.CursorType.Sizing);
+            this.ZoomHorizontalCursor = new Cursor(Gdk.CursorType.SbHDoubleArrow);
+            this.ZoomVerticalCursor = new Cursor(Gdk.CursorType.SbVDoubleArrow);
+            this.AddEvents((int)(EventMask.ButtonPressMask | EventMask.ButtonReleaseMask | EventMask.EnterNotifyMask | EventMask.LeaveNotifyMask | EventMask.ScrollMask | EventMask.KeyPressMask | EventMask.PointerMotionMask));
+        }
+
         /// <summary>
         /// Sets the cursor type.
         /// </summary>
