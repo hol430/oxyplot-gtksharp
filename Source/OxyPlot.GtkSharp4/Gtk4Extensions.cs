@@ -102,7 +102,7 @@ namespace OxyPlot.GtkSharp
         /// <returns>The mouse button.</returns>
         private static OxyMouseButton ConvertButton(this GestureSingle controller)
         {
-            switch (controller.GetButton())
+            switch (controller.GetCurrentButton())
             {
                 case 1:
                     return OxyMouseButton.Left;

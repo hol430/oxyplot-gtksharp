@@ -13,10 +13,12 @@ namespace OxyPlot.GtkSharp
 {
     public partial class PlotView
     {
-        /// <summary>
-        /// Gtk version-specific initialisation.
-        /// </summary>
-        private void Initialise()
+		private ScreenPoint? cursorPosition;
+
+		/// <summary>
+		/// Gtk version-specific initialisation.
+		/// </summary>
+		private void Initialise()
         {
             // gdk4 cursor names listed here:
             // https://docs.gtk.org/gdk4/ctor.Cursor.new_from_name.html
@@ -98,7 +100,9 @@ namespace OxyPlot.GtkSharp
         /// <returns><c>true</c> if the event was handled.</returns>
         protected override void OnMotionNotifyEvent(EventControllerMotion sender, EventControllerMotion.MotionSignalArgs args)
         {
-            this.ActualController.HandleMouseMove(this, args.ToMouseEventArgs(sender));
+            OxyMouseEventArgs oxyArgs = args.ToMouseEventArgs(sender);
+            this.cursorPosition = oxyArgs.Position;
+            this.ActualController.HandleMouseMove(this, oxyArgs);
         }
 
         /// <summary>
@@ -121,8 +125,8 @@ namespace OxyPlot.GtkSharp
             if (evnt == null)
                 return false;
             // fixme - get mouse coords
-            double x = 0;
-            double y = 0;
+            double x = cursorPosition?.X ?? 0;
+            double y = cursorPosition?.Y ?? 0;
             return this.ActualController.HandleMouseWheel(this, GetMouseWheelEventArgs(args, evnt.GetModifierState(), x, y));
         }
 
@@ -179,8 +183,7 @@ namespace OxyPlot.GtkSharp
         /// <returns>Mouse event arguments.</returns>
         private static OxyMouseWheelEventArgs GetMouseWheelEventArgs(EventControllerScroll.ScrollSignalArgs e, ModifierType modifiers, double x, double y)
         {
-            // fixme
-            int delta = (int)Math.Sqrt(e.Dx * e.Dx + e.Dy * e.Dy);
+            int delta = e.Dy < 0 ? 120 : -120;
 
             return new OxyMouseWheelEventArgs
             {

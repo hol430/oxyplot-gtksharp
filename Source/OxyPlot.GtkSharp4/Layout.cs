@@ -13,6 +13,8 @@ namespace OxyPlot.GtkSharp
 			GestureClick clickController = GestureClick.New();
 			clickController.OnPressed += OnButtonPressEvent;
             clickController.OnReleased += OnButtonReleaseEvent;
+            // Set button to 0 to capture all events.
+            clickController.Button = 0;
 			this.AddController(clickController);
 
             EventControllerMotion motionController = EventControllerMotion.New();
@@ -23,6 +25,7 @@ namespace OxyPlot.GtkSharp
 
             EventControllerScroll scrollController = EventControllerScroll.New(EventControllerScrollFlags.BothAxes);
             scrollController.OnScroll += OnScrollEvent;
+            this.AddController(scrollController);
 
             EventControllerKey keypressController = EventControllerKey.New();
             keypressController.OnKeyPressed += OnKeyPressEvent;
