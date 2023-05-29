@@ -323,7 +323,7 @@ namespace OxyPlot.GtkSharp
             // note: the draw function will call ShowText()
             QueueDraw();
 #else
-            this.ShowText(text, colour, fg, xPos, yPos);
+            this.ShowText(text, bg, fg, xPos, yPos);
 #endif
         }
 
