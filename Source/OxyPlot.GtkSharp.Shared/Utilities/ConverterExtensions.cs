@@ -140,7 +140,7 @@ namespace OxyPlot.GtkSharp
         /// <param name="c">The color.</param>
         public static void SetSourceColor(this Context g, OxyColor c)
         {
-            g.SetSourceRGBA(c.R / 256.0, c.G / 256.0, c.B / 256.0, c.A / 256.0);
+            g.SetSourceRGBA(c.R / 255.0, c.G / 255.0, c.B / 255.0, c.A / 255.0);
         }
 
         /// <summary>

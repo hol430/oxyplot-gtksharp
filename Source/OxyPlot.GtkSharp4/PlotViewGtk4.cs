@@ -75,6 +75,8 @@ namespace OxyPlot.GtkSharp
         protected override void OnDrawn (DrawingArea drawingArea, Context cr, int width, int height)
         {
             this.DrawPlot (cr);
+            if (tracker != null)
+                ShowText(tracker.Text, tracker.BgColour, tracker.FgColour, tracker.X, tracker.Y);
             // return base.OnDrawn (cr);
         }
 

@@ -56,13 +56,17 @@ namespace OxyPlot.GtkSharp
         /// The render context.
         /// </summary>
         private readonly GraphicsRenderContext renderContext;
-
+#if GTKSHARP4
+        [NonSerialized]
+        private TrackerState? tracker;
+#else
         /// <summary>
         /// The tracker label
         /// </summary>
         [NonSerialized]
         private Gtk.Label trackerLabel = null;
 
+#endif
         /// <summary>
         /// The current model (holding a reference to this plot view).
         /// </summary>
@@ -228,8 +232,13 @@ namespace OxyPlot.GtkSharp
         /// </summary>
         public void HideTracker()
         {
+#if GTKSHARP4
+            tracker = null;
+            QueueDraw();
+#else
             if (this.trackerLabel != null)
                 this.trackerLabel.Parent.Visible = false;
+#endif
         }
 
         /// <summary>
@@ -286,39 +295,61 @@ namespace OxyPlot.GtkSharp
         public void ShowTracker(TrackerHitResult data)
         {
 #if GTKSHARP4
-            int width = this.GetWidth();
-            int height = GetHeight();
+            // gtk4 - width = 800, height = 600, data.x = 456, data.y = 136
+            int width = 0;
+            int height = 0;
 #else
-            Gtk.Requisition req = this.trackerLabel.Parent.SizeRequest();
-            int width = req.Width;
-            int height = req.Height;
+            // gtk3 - width = 178, height = 63, data.x = 420, data.y = 129
+            int width, height;
+            if (trackerLabel == null)
+                width = height = 0;
+            else
+            {
+                Gtk.Requisition req = this.trackerLabel.Parent.SizeRequest();
+                width = req.Width;
+                height = req.Height;
+            }
 #endif
 
             int xPos = (int)data.Position.X - width / 2;
             int yPos = (int)data.Position.Y - height;
             xPos = Math.Max(0, Math.Min(xPos, this.GetWidth() - width));
             yPos = Math.Max(0, Math.Min(yPos, this.GetHeight() - height));
-            this.ShowText(data.ToString(), OxyColors.LightSkyBlue, xPos, yPos);
+            OxyColor bg = OxyColors.LightSkyBlue;
+            OxyColor fg = OxyColors.White;
+            string text = data.ToString();
+#if GTKSHARP4
+            tracker = new TrackerState(text, xPos, yPos, bg, fg);
+            // note: the draw function will call ShowText()
+            QueueDraw();
+#else
+            this.ShowText(text, colour, fg, xPos, yPos);
+#endif
         }
 
-        private void ShowText(string text, OxyColor bgColor, int x, int y)
+        private void ShowText(string text, OxyColor bgColor, OxyColor fgColor, int x, int y)
         {
+            const int padding = 3;
 #if GTKSHARP4
             // tbi
             ScreenPoint point = new ScreenPoint(x, y);
             // These font settings aren't yet used in gtk4 builds, but we will
             // eventually need to figure out what settings to use.
             string family = string.Empty;
-            double size = 12;
-            double weight = 1;
+            double size = 14;
+            double weight = (double)Pango.Weight.Normal;
             double rotate = 0;
-            HorizontalAlignment halign = HorizontalAlignment.Center;
-            VerticalAlignment valign = VerticalAlignment.Middle;
+            HorizontalAlignment halign = HorizontalAlignment.Left;
+            VerticalAlignment valign = VerticalAlignment.Top;
             OxySize? maxSize = null;
+            OxySize req = renderContext.MeasureText(text, family, size, weight);
+            OxyRect rect = new OxyRect((double)x - padding, (double)y - padding, req.Width + 2 * padding, req.Height + 2 * padding);
+            EdgeRenderingMode edgeRenderingMode = EdgeRenderingMode.Automatic.GetActual(EdgeRenderingMode.Adaptive);
+            renderContext.FillRectangle(rect, bgColor, edgeRenderingMode);
             renderContext.DrawText(
                 point,
                 text,
-                bgColor,
+                fgColor,
                 family,
                 size,
                 weight,
@@ -332,7 +363,7 @@ namespace OxyPlot.GtkSharp
                 // Holding the tracker label inside an EventBox allows
                 // us to set the background color
                 this.trackerLabel = new Gtk.Label();
-                this.trackerLabel.SetPadding(3, 3);
+                this.trackerLabel.SetPadding(padding, padding);
                 Gtk.EventBox labelHolder = new Gtk.EventBox();
                 labelHolder.ModifyBg(StateType.Normal, new Gdk.Color(bgColor.R, bgColor.G, bgColor.B));
                 labelHolder.Add(this.trackerLabel);
