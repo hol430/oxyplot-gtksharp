@@ -8,8 +8,8 @@
   <Import Project="..\..\GtkSharp.Shared\GtkSharpDemo\GtkSharpDemo.Shared.projitems" Label="Shared" />
   <ItemGroup>
     <ProjectReference Include="..\..\..\OxyPlot.GtkSharp4\OxyPlot.GtkSharp4.csproj" />
-    <PackageReference Include="GirCore.Gtk-4.0" Version="0.3.0" />
-    <PackageReference Include="GirCore.PangoCairo-1.0" Version="0.3.0" />
+    <PackageReference Include="GirCore.Gtk-4.0" Version="0.4.0" />
+    <PackageReference Include="GirCore.PangoCairo-1.0" Version="0.4.0" />
     <None Include="App.config" />
   </ItemGroup>
 </Project>

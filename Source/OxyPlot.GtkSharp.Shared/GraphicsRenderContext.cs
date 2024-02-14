@@ -417,7 +417,8 @@ namespace OxyPlot.GtkSharp
             double size = fontSize * GetPangoScale();
 #if GTKSHARP4
             // fixme - gircore doesn't yet support struct methods/properties
-            var hnd = Pango.Internal.FontDescription.FromString(fontFamily);
+		    GLib.Internal.NonNullableUtf8StringOwnedHandle fontHandle = GLib.Internal.NonNullableUtf8StringOwnedHandle.Create(fontFamily);
+            var hnd = Pango.Internal.FontDescription.FromString(fontHandle);
             Pango.FontDescription font = new Pango.FontDescription(hnd);
             font.SetWeight(weight);
             font.SetAbsoluteSize(size);

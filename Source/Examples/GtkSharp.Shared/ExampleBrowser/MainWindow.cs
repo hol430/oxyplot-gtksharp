@@ -13,9 +13,9 @@ namespace ExampleBrowser
     using ExampleLibrary;
 	using Gtk;
 
-    #if GTK3
+#if GTK3
     using TreeModel = Gtk.ITreeModel;
-    #endif
+#endif
 #if GTKSHARP4
     using Gio;
 #endif
@@ -134,7 +134,7 @@ namespace ExampleBrowser
                     this.SelectedExample = this.Examples.FirstOrDefault(ex => ex.Category == val2 && ex.Title == val1);
                 }
             };
-#endif
+// #endif
 
             var scrollwin = new ScrolledWindow ();
 #if GTKSHARP4
