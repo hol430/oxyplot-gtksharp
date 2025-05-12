@@ -82,7 +82,7 @@ namespace GtkSharpDemo
             }
 #if GTKSHARP4
             };
-            app.Run();
+            app.Run(0, new string[0]);
 #endif
         }
     }

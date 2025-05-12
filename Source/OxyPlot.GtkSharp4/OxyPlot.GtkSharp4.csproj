@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
     <RootNamespace>OxyPlot.GtkSharp</RootNamespace>
     <PackageId>OxyPlot.GtkSharp4</PackageId>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -19,7 +19,7 @@
   <Import Project="..\OxyPlot.GtkSharp.Shared\OxyPlot.GtkSharp.Shared.projitems" Label="Shared" />
   <ItemGroup>
     <PackageReference Include="OxyPlot.Core" Version="2.1.0" />
-    <PackageReference Include="GirCore.Gtk-4.0" Version="0.4.0" />
-    <PackageReference Include="GirCore.PangoCairo-1.0" Version="0.4.0" />
+    <PackageReference Include="GirCore.Gtk-4.0" Version="0.6.3" />
+    <PackageReference Include="GirCore.PangoCairo-1.0" Version="0.6.3" />
   </ItemGroup>
 </Project>

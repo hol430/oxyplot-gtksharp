@@ -6,7 +6,7 @@ namespace OxyPlot.GtkSharp
 {
 	public abstract class Layout : DrawingArea
 	{
-		protected Layout()
+		protected Layout() : base(new Gtk.Internal.DrawingAreaHandle(Gtk.Internal.DrawingArea.New(), false))
 		{
 			this.SetDrawFunc(OnDrawn);
 

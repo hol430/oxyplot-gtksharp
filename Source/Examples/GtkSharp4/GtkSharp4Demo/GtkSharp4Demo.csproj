@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net7.0</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
     <RootNamespace>GtkSharpDemo</RootNamespace>
     <OutputType>WinExe</OutputType>
     <DefineConstants>GTKSHARP4;GTKSHARP34</DefineConstants>
@@ -8,8 +8,8 @@
   <Import Project="..\..\GtkSharp.Shared\GtkSharpDemo\GtkSharpDemo.Shared.projitems" Label="Shared" />
   <ItemGroup>
     <ProjectReference Include="..\..\..\OxyPlot.GtkSharp4\OxyPlot.GtkSharp4.csproj" />
-    <PackageReference Include="GirCore.Gtk-4.0" Version="0.4.0" />
-    <PackageReference Include="GirCore.PangoCairo-1.0" Version="0.4.0" />
+    <PackageReference Include="GirCore.Gtk-4.0" Version="0.6.3" />
+    <PackageReference Include="GirCore.PangoCairo-1.0" Version="0.6.3" />
     <None Include="App.config" />
   </ItemGroup>
 </Project>

@@ -296,12 +296,13 @@ namespace OxyPlot.GtkSharp
 
 #if GTKSHARP4
             // fixme: gircore rectangle handling is clunky.
-            Pango.Rectangle inkRect = new Pango.Rectangle(Pango.Internal.RectangleManagedHandle.Create());
-            Pango.Rectangle tmpSize = new Pango.Rectangle(Pango.Internal.RectangleManagedHandle.Create());
-            Pango.Internal.Layout.GetExtents(layout.Handle, inkRect.Handle, tmpSize.Handle);
+            // Pango.Rectangle inkRect = new Pango.Rectangle();
+            // Pango.Rectangle tmpSize = new Pango.Rectangle();
+            // Pango.Internal.Layout.GetExtents(layout.Handle, inkRect.Handle, tmpSize.Handle);
+            layout.GetExtents(out Pango.Rectangle inkRect, out Pango.Rectangle size);
 
-            Pango.Internal.RectangleData data = System.Runtime.InteropServices.Marshal.PtrToStructure<Pango.Internal.RectangleData>(tmpSize.Handle.DangerousGetHandle());
-			Rectangle size = new Rectangle(data.X, data.Y, data.Width, data.Height);
+            // Pango.Internal.RectangleData data = System.Runtime.InteropServices.Marshal.PtrToStructure<Pango.Internal.RectangleData>(tmpSize.Handle.DangerousGetHandle());
+			// Rectangle size = new Rectangle(data.X, data.Y, data.Width, data.Height);
 #else
             Pango.Rectangle inkRect;
             Pango.Rectangle size;
@@ -363,7 +364,7 @@ namespace OxyPlot.GtkSharp
 		private FontDescription CreateFontDescription()
 		{
 #if GTKSHARP4
-            return new Pango.FontDescription(Pango.Internal.FontDescriptionManagedHandle.Create());
+            return Pango.FontDescription.New();
 #else
             return new Pango.FontDescription();
 #endif
@@ -389,9 +390,7 @@ namespace OxyPlot.GtkSharp
             Pango.Rectangle inkRect;
             Pango.Rectangle logicalRect;
 #if GTKSHARP4
-            inkRect = new Pango.Rectangle(Pango.Internal.RectangleManagedHandle.Create());
-            logicalRect = new Pango.Rectangle(Pango.Internal.RectangleManagedHandle.Create());
-            Pango.Internal.Layout.GetExtents(layout.Handle, inkRect.Handle, logicalRect.Handle);
+            layout.GetExtents(out inkRect, out logicalRect);
             int width = logicalRect.GetWidth();
             int height = logicalRect.GetHeight();
 #else
@@ -417,9 +416,7 @@ namespace OxyPlot.GtkSharp
             double size = fontSize * GetPangoScale();
 #if GTKSHARP4
             // fixme - gircore doesn't yet support struct methods/properties
-		    GLib.Internal.NonNullableUtf8StringOwnedHandle fontHandle = GLib.Internal.NonNullableUtf8StringOwnedHandle.Create(fontFamily);
-            var hnd = Pango.Internal.FontDescription.FromString(fontHandle);
-            Pango.FontDescription font = new Pango.FontDescription(hnd);
+            Pango.FontDescription font = Pango.FontDescription.FromString(fontFamily);
             font.SetWeight(weight);
             font.SetAbsoluteSize(size);
             layout.SetFontDescription(font);
@@ -589,7 +586,10 @@ namespace OxyPlot.GtkSharp
 
             Pixbuf btm;
 #if GTKSHARP4
-            btm = PixbufLoader.FromBytes(source.GetData());
+            // For the typical case where the inline pixbuf is read-only static
+            // data, you don’t need to copy the pixel data unless you intend to
+            // write to it.
+            btm = Pixbuf.NewFromInline(source.GetData(), false);
 #else
             using (var ms = new MemoryStream(source.GetData()))
             {
