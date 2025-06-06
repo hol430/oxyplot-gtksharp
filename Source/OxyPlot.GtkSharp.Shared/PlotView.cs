@@ -228,6 +228,16 @@ namespace OxyPlot.GtkSharp
         public Cursor ZoomVerticalCursor { get; set; }
 
         /// <summary>
+        /// Gets or sets the tracker background colour.
+        /// </summary>
+        public OxyColor TrackerBackground { get; set; } = OxyColors.LightSkyBlue;
+
+        /// <summary>
+        /// Gets or sets the tracker foreground colour.
+        /// </summary>
+        public OxyColor TrackerForeground { get; set; } = OxyColors.White;
+
+        /// <summary>
         /// Hides the tracker.
         /// </summary>
         public void HideTracker()
@@ -315,8 +325,8 @@ namespace OxyPlot.GtkSharp
             int yPos = (int)data.Position.Y - height;
             xPos = Math.Max(0, Math.Min(xPos, this.GetWidth() - width));
             yPos = Math.Max(0, Math.Min(yPos, this.GetHeight() - height));
-            OxyColor bg = OxyColors.LightSkyBlue;
-            OxyColor fg = OxyColors.White;
+            OxyColor bg = TrackerBackground;
+            OxyColor fg = TrackerForeground;
             string text = data.ToString();
 #if GTKSHARP4
             tracker = new TrackerState(text, xPos, yPos, bg, fg);
